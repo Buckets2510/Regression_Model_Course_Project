@@ -1,0 +1,102 @@
+---
+title: "Regression Models Week 4 Project - Motor Trend MPG Analysis"
+author: "Brandon Robinson"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Executive Summary
+The report will analyze the relationship between transmission type (automatic / manual) and miles per gallon (MPG), and determine which type has more of an influence
+on the MPG of a car. The dataset used is `mtcars` which contains data of 32 cars between 1973 - 1974. The first step will be to conduct a t-test to determine
+if the null hypothesis is rejected. Next several linear regression models will be employed to determine the statistical significance of variables against 
+the MPG of cars.
+
+### Load Data
+The required libraries will be loaded.
+```{r message = FALSE}
+library(ggplot2)
+library(GGally)
+```
+
+``` {r}
+data(mtcars)
+head(mtcars, n = 6) # Display the first 6 rows of the mtcars dataset
+```
+
+### Exploratory analysis
+The next step is to perform initial exploratory analysis of the cars dataset and change some factors from `numeric` to `factor` class.
+
+```{r echo = TRUE}
+boxplot(mtcars$mpg ~ mtcars$am, xlab = "Transmission", ylab = "MPG", main = "Boxplot of MPG
+        vs. Transmission")
+```
+
+From the intial boxplot one can infer manual transmission has a greater influence on the MPG
+
+After the initial analysis, several variables will be changed in order to explore the influence on MPG.
+```{r echo = TRUE}
+mtcars$am <- gsub("0", "auto", mtcars$am)
+mtcars$am <- gsub("1", "manual", mtcars$am)
+mtcars$am <- factor(mtcars$am)
+mtcars$cyl <- as.factor(mtcars$cyl)
+mtcars$vs <- as.factor(mtcars$vs)
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+```
+
+### Statistical Inference
+A t-test will be performed to verify if the null hypothesis should be rejected
+``` {r echo = TRUE}
+tResults <- t.test(mpg ~ am, mtcars)
+tResults$p.value
+tResults$estimate
+```
+The p-value is 0.00137, so the null hypothesis is rejected. In addition, the estimate shows the MPG of manual cars is ~7 more than automatic.
+
+### Regression Analysis
+The first step is to look at the impact of all variables on the full dataset.
+``` {r echo = TRUE}
+full_model <- lm(mpg ~ ., mtcars)
+summary(full_model)$r.squared
+```
+
+The full model shows a 89% variance of mpg on all variables, but this does not provide us clear detail on which variables have the largest impact.
+
+Next, only two variables were analysed, automatic and manual, to see if this has the largest influence on the MPG
+``` {r echo = TRUE}
+am_model <- lm(mpg ~ am, mtcars)
+summary(am_model)$r.squared
+```
+
+Even though the transmission type affects MPG, the variance is only 36% which means there are other variables that have more of an influence
+
+The next test is to use the step function to determine the variables which have the greatest influence over MPG.
+``` {r echo = TRUE}
+step_model <- step(full_model, direction = "backward", trace = FALSE)
+summary(step_model)
+```
+
+The step function included the additional variables, cyl6, cyl8, hp, and wt alongside transmission. 
+
+### Conclusion
+Based on the results from `step_model` it can be inferred other variables have more of an influence on the cars MPG. If the additional variables,
+cyl6, cyl8, hp, and wt, are held constant the manual transmissions get 1.8 MPG more on average than automatic.
+
+### Appendix
+1. Residual plots
+
+```{r echo = TRUE}
+par(mfrow = c(2,2))
+plot(step_model)
+```
+
+2. Pair graph
+```{r message = FALSE}
+ggpairs(mtcars, mapping = aes(colour = am))
+```
